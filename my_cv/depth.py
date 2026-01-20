@@ -33,7 +33,7 @@ class HurdleDetectorNode(Node):
         frame[depth >= self.depth_thresh] = 0 # 거리
         frame[depth <= 30.0] = 0
 
-        cv2.imshow('Raw Hurdle Mask', frame) # 기준 거리 이내, 주황색
+        cv2.imshow('Raw Hurdle Mask', frame) # 기준 거리 이내
         cv2.waitKey(1)
 
 def main():
