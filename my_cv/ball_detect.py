@@ -262,7 +262,7 @@ class BasketballDetectorNode(Node):
             self.last_report_time = now
 
         cv2.putText(frame, self.last_avg_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(frame, self.last_position_text, (self.roi_x_start - 175, self.roi_y_end + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (230, 230, 30), 2)
+        cv2.putText(frame, self.last_position_text, (10, self.roi_y_end + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (230, 230, 30), 2)
 
         cv2.imshow('Raw', raw_mask) # 기준 거리 이내, 주황색
         cv2.imshow('Mask', mask) # 기준 거리 이내, 주황색, 보정 들어간 마스크
