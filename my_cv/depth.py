@@ -1,6 +1,5 @@
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import PointStamped
 from cv_bridge import CvBridge
 # 메세지
 from message_filters import Subscriber, ApproximateTimeSynchronizer
@@ -8,8 +7,6 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 import rclpy as rp
 import numpy as np
 import cv2
-import time
-import math
 
 class HurdleDetectorNode(Node):
     def __init__(self):
@@ -19,9 +16,6 @@ class HurdleDetectorNode(Node):
         self.lower_hsv = np.array([20, 20, 70])
         self.upper_hsv = np.array([80, 255, 255]) # 노랑색 기준으로
         self.depth_thresh = 500.0  # mm 기준 마스크 거리
-        self.depth_scale = 0.001    # m 변환용
-        self.fx, self.fy = 607.0, 606.0   # ros2 topic echo /camera/color/camera_info - 카메라 고유값
-        self.cx_intr, self.cy_intr = 325.5, 239.4
 
         # 컬러, 깊이 영상 동기화
         self.bridge = CvBridge()
@@ -29,7 +23,6 @@ class HurdleDetectorNode(Node):
         depth_sub = Subscriber(self, Image, '/camera/aligned_depth_to_color/image_raw') # 깊이
         self.sync = ApproximateTimeSynchronizer([color_sub, depth_sub], queue_size=5, slop=0.1)
         self.sync.registerCallback(self.image_callback)
-
 
     def image_callback(self, color_msg: Image, depth_msg: Image):
 
