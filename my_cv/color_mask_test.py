@@ -13,10 +13,7 @@ class ColorNode(Node):
     def __init__(self):
         super().__init__('color_test_node')
 
-        self.kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         self.bridge = CvBridge()
-
-        # 카메라 한 대에서 컬러/깊이 동기화
         self.color_sub = Subscriber(self, Image, '/camera/color/image_raw')
         self.depth_sub = Subscriber(self, Image, '/camera/aligned_depth_to_color/image_raw')
         self.sync = ApproximateTimeSynchronizer([self.color_sub, self.depth_sub], queue_size=5, slop=0.1)
@@ -48,6 +45,8 @@ class ColorNode(Node):
         self.upper_hsv = np.array([self.h_high, self.s_high, self.v_high], dtype=np.uint8)
         self.hsv = None
 
+        self.kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
         # 화면 클릭
         cv2.namedWindow('Color Mask')
         cv2.setMouseCallback('Color Mask', self.click)
@@ -63,7 +62,7 @@ class ColorNode(Node):
             elif p.name == "depth_min": self.depth_min = int(p.value)
             elif p.name == "depth_max": self.depth_max = int(p.value)
 
-        # HSV 경계값 배열 갱신
+        # HSV 갱신
         self.lower_hsv = np.array([self.h_low, self.s_low, self.v_low], dtype=np.uint8)
         self.upper_hsv = np.array([self.h_high, self.s_high, self.v_high], dtype=np.uint8)
 
@@ -96,11 +95,11 @@ class ColorNode(Node):
         depth_mask = cv2.morphologyEx(depth_mask, cv2.MORPH_CLOSE, self.kernel)
         depth_mask = cv2.morphologyEx(depth_mask, cv2.MORPH_OPEN, self.kernel)
 
-        # 단일채널 이미지를 컬러로 변환
+        # 마스크 흑백 > 컬러    <<< 합치려고
         raw_mask_color = cv2.cvtColor(raw_mask, cv2.COLOR_GRAY2BGR)
         mask_color = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 
-        # 깊이 범위 내 컬러 마스킹
+        # 깊이 마스크
         depth_mask_bool = (depth > self.depth_min) & (depth < self.depth_max)
         color_in_depth = np.zeros_like(frame)
         color_in_depth[depth_mask_bool] = frame[depth_mask_bool]
@@ -109,7 +108,7 @@ class ColorNode(Node):
         concat_img = np.hstack([raw_mask_color, mask_color, frame])
         cv2.imshow('Color Mask', concat_img)
 
-        # 깊이 마스크 + 깊이범위 컬러 나란히 출력
+        # 거리 2분할
         depth_mask_bgr = cv2.cvtColor(depth_mask, cv2.COLOR_GRAY2BGR)
         depth_concat = np.hstack([depth_mask_bgr, color_in_depth])
         cv2.imshow('Depth Mask', depth_concat)
