@@ -7,7 +7,7 @@ import time
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from my_cv_msgs.msg import LinePoint, LinePointsArray # type: ignore 
+from robot_msgs.msg import LinePoint, LinePointsArray # type: ignore 
 from rcl_interfaces.msg import SetParametersResult
 
 class RectangleTracker:
@@ -202,146 +202,133 @@ class ImgSubscriber(Node):
 
     def color_image_callback(self, msg):
 
-            start_time = time.time()  # 시작 시간 기록
+        start_time = time.time()  # 시작 시간 기록
 
-            # ROS 이미지 CV 이미지로 받아오기
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-            screen_h, screen_w, _ = cv_image.shape
+        # ROS 이미지 CV 이미지로 받아오기
+        cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        screen_h, screen_w, _ = cv_image.shape
 
-            # ROI 좌표 정의, 컷
-            self.roi_x_start = int(screen_w * 1 // 5 + 75)
-            self.roi_x_end   = int(screen_w * 4 // 5 + 75)
-            self.roi_y_start = int(screen_h * 1 // 12)
-            self.roi_y_end   = int(screen_h * 11 // 12)
+        # ROI 좌표 정의, 컷
+        self.roi_x_start = int(screen_w * 1 // 5 + 75)
+        self.roi_x_end   = int(screen_w * 4 // 5 + 75)
+        self.roi_y_start = int(screen_h * 1 // 12)
+        self.roi_y_end   = int(screen_h * 11 // 12)
 
-            # zandi
-            self.zandi_x = int((self.roi_x_start + self.roi_x_end) / 2)
-            self.zandi_y = int(screen_h - 100)
+        # zandi
+        self.zandi_x = int((self.roi_x_start + self.roi_x_end) / 2)
+        self.zandi_y = int(screen_h - 100)
 
-            roi = cv_image[self.roi_y_start:self.roi_y_end, self.roi_x_start:self.roi_x_end]
+        roi = cv_image[self.roi_y_start:self.roi_y_end, self.roi_x_start:self.roi_x_end]
 
-            # GPU 메모리에 이미지 업로드   ----------------------------------------------------------------------------------------------CUDA 시작 / 보정 시작
-            gpu_image = cv2.cuda_GpuMat()
-            gpu_image.upload(roi)
+        # ROI 보정 (CPU)
+        blurred = cv2.GaussianBlur(roi, (5, 5), 0)
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
-            # CUDA용 Gaussian 필터 생성
-            gpu_gaussian = cv2.cuda.createGaussianFilter(cv2.CV_8UC3, cv2.CV_8UC3, (5, 5), 0)
+        # CLAHE 적용
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        h, s, v = cv2.split(hsv) 
+        v = clahe.apply(v) # v값만 보정
+        hsv_image = cv2.merge((h, s, v))
+        
+        #--------------------------------------------------------------------------------------------------------------------- 보정 끝
 
-            # Gaussian 필터 적용
-            gpu_blurred = gpu_gaussian.apply(gpu_image)
+        # 1. BGR 이미지로 변환
+        bgr_image = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)  # 보정 끝낸 bgr 화면 < 내가 보려고 띄우는 화면
 
-            # BGR -> HSV 변환 (CUDA 버전)
-            gpu_hsv = cv2.cuda.cvtColor(gpu_blurred, cv2.COLOR_BGR2HSV)
+        # 2. HSV 흰색 범위 지정
+        hsv_upper_white = np.array([self.h_up, self.s_up, self.v_up])
+        hsv_lower_white = np.array([self.h_down, self.s_down, self.v_down])
+        hsv_mask = cv2.inRange(hsv_image, hsv_lower_white, hsv_upper_white) # 이 화면으로 판단
 
-            # GPU 메모리에서 HSV 이미지 다운로드   ---------------------------------------------------------------------------------------CUDA 끝
-            hsv = gpu_hsv.download()   
+        contours, _ = cv2.findContours(hsv_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if contours:
+            self.last_detected_time = time.time()
+            self.yolo = False
+            rect_centroids = []  # 무게중심 리스트 (cx, cy)
+            for cnt in contours:     # 사각형 찾기
+                epsilon = self.epsilon_n * cv2.arcLength(cnt, True)  # 근사화 정확도 낮춤 / 0.05정도로 하라는데 조정 필요
+                approx = cv2.approxPolyDP(cnt, epsilon, True)  # 윤곽선 근사
 
-            # CLAHE 적용
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-            h, s, v = cv2.split(hsv) 
-            v = clahe.apply(v) # v값만 보정
-            hsv_image = cv2.merge((h, s, v))
+                if len(approx) == 4:  # 1. 모서리가 4개면,
+                    rect = cv2.minAreaRect(approx) # 윤곽선 최소 외접 사각형(박스)
+                    (box_cx, box_cy), (box_w, box_h), box_ang = rect
+                    box_cx, box_cy = int(box_cx), int(box_cy)
+                    box_w, box_h = int(box_w), int(box_h)
+                    area_rect = box_w * box_h
+                    if self.rect_area_max > area_rect > self.rect_area_min:  # 2. 외접 박스 면적이 500 이상, 3000이하면,
+                        angles = []
+                        for i in range(4):  # 각도 계산  >>>>>>>>> 이거 연산이 좀 많긴 함 
+                            p1, p2, p3 = approx[i - 1][0], approx[i][0], approx[(i + 1) % 4][0]
+                            v1 = np.array(p1) - np.array(p2)
+                            v2 = np.array(p3) - np.array(p2)
+                            cos_theta = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+                            angle = np.degrees(np.arccos(np.clip(cos_theta, -1.0, 1.0)))  # 라디안 -> 도 변환
+                            angles.append(angle)
+                        if all(60 <= angle <= 120 for angle in angles): # 3. 내각이 60~120 사이면,
+                            cv2.drawContours(bgr_image, [approx], 0, (200, 0, 255), 2)  # 테두리 핑크 / 사각형 검출 하는지 확인용 / 지금 프레임에서 사각형이라고 검출된 모든 사각형
+                            rect_centroids.append((box_cx,box_cy))  # 사각형 중심 리스트에 추가 
+                                
+            # -------------------------------------------------------------------- 사각형 추적
+
+            valid_rects = self.tracker.update(rect_centroids)  # 사각형 중심을 추적기에 보냄 {id: (cx, cy, lost, found)} / lost & found 조건도 만족한 사각형            
+            for id,(cx,cy,lost,found) in valid_rects.items(): 
+                cv2.putText(bgr_image, f"ID: {id}", (cx, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2) # 유효 사각형은 id 출력
+
+            #---------------------------------------------------------------------- 라인 판단할 점들 발행
             
-            #--------------------------------------------------------------------------------------------------------------------- 보정 끝
+            candidates = sorted(
+                [(cx, cy, lost) for (cx, cy, lost, found) in valid_rects.values()],
+                key=lambda c: c[1], reverse=True)[:5] # 후보점 5개 선택 (화면 아래쪽부터)
+        else:
+            candidates = []
+            if time.time() - self.last_detected_time >= 10:
+                self.yolo = True
+                print("Miss")
+        
+        msg_array = LinePointsArray() # 튜플로
+        for (cx, cy, lost) in candidates: 
+            msg = LinePoint() # (cx, cy, lost)
+            msg.cx = cx
+            msg.cy = cy
+            msg.lost = lost
+            msg_array.points.append(msg) # [(cx, cy, lost), (cx, cy, lost),,,,,,,,,]
+        self.line_publisher.publish(msg_array)
+        print(msg_array)
 
-            # 1. BGR 이미지로 변환
-            bgr_image = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)  # 보정 끝낸 bgr 화면 < 내가 보려고 띄우는 화면
+        cv_image[self.roi_y_start:self.roi_y_end, self.roi_x_start:self.roi_x_end] = bgr_image  # 전체화면
+        cv2.rectangle(cv_image, (self.roi_x_start - 1, self.roi_y_start - 1), (self.roi_x_end + 1, self.roi_y_end), (0, 255, 0), 1) # ROI 구역 표시
+        
+        #-------------------------------------------------------------------------------------------------- 프레임 처리 시간 측정
 
-            # 2. HSV 흰색 범위 지정
-            hsv_upper_white = np.array([self.h_up, self.s_up, self.v_up])
-            hsv_lower_white = np.array([self.h_down, self.s_down, self.v_down])
-            hsv_mask = cv2.inRange(hsv_image, hsv_lower_white, hsv_upper_white) # 이 화면으로 판단
+        elapsed = time.time() - start_time
+        self.frame_count += 1
+        self.total_time += elapsed
 
-            contours, _ = cv2.findContours(hsv_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        now = time.time()
+
+        # 1초에 한 번 평균 계산
+        if now - self.last_report_time >= 1.0:
+            avg_time = self.total_time / self.frame_count
+            avg_fps = self.frame_count / (now - self.last_report_time)
             
-            if contours:
-                self.last_detected_time = time.time()
-                self.yolo = False
-                rect_centroids = []  # 무게중심 리스트 (cx, cy)
-                for cnt in contours:     # 사각형 찾기
-                    epsilon = self.epsilon_n * cv2.arcLength(cnt, True)  # 근사화 정확도 낮춤 / 0.05정도로 하라는데 조정 필요
-                    approx = cv2.approxPolyDP(cnt, epsilon, True)  # 윤곽선 근사
-
-                    if len(approx) == 4:  # 1. 모서리가 4개면,
-                        rect = cv2.minAreaRect(approx) # 윤곽선 최소 외접 사각형(박스)
-                        (box_cx, box_cy), (box_w, box_h), box_ang = rect
-                        box_cx, box_cy = int(box_cx), int(box_cy)
-                        box_w, box_h = int(box_w), int(box_h)
-                        area_rect = box_w * box_h
-                        if self.rect_area_max > area_rect > self.rect_area_min:  # 2. 외접 박스 면적이 500 이상, 3000이하면,
-                            angles = []
-                            for i in range(4):  # 각도 계산  >>>>>>>>> 이거 연산이 좀 많긴 함 
-                                p1, p2, p3 = approx[i - 1][0], approx[i][0], approx[(i + 1) % 4][0]
-                                v1 = np.array(p1) - np.array(p2)
-                                v2 = np.array(p3) - np.array(p2)
-                                cos_theta = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-                                angle = np.degrees(np.arccos(np.clip(cos_theta, -1.0, 1.0)))  # 라디안 -> 도 변환
-                                angles.append(angle)
-                            if all(60 <= angle <= 120 for angle in angles): # 3. 내각이 60~120 사이면,
-                                cv2.drawContours(bgr_image, [approx], 0, (200, 0, 255), 2)  # 테두리 핑크 / 사각형 검출 하는지 확인용 / 지금 프레임에서 사각형이라고 검출된 모든 사각형
-                                rect_centroids.append((box_cx,box_cy))  # 사각형 중심 리스트에 추가 
-                                    
-                # -------------------------------------------------------------------- 사각형 추적
-
-                valid_rects = self.tracker.update(rect_centroids)  # 사각형 중심을 추적기에 보냄 {id: (cx, cy, lost, found)} / lost & found 조건도 만족한 사각형            
-                for id,(cx,cy,lost,found) in valid_rects.items(): 
-                    cv2.putText(bgr_image, f"ID: {id}", (cx, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2) # 유효 사각형은 id 출력
-
-                #---------------------------------------------------------------------- 라인 판단할 점들 발행
-                
-                candidates = sorted(
-                    [(cx, cy, lost) for (cx, cy, lost, found) in valid_rects.values()],
-                    key=lambda c: c[1], reverse=True)[:5] # 후보점 5개 선택 (화면 아래쪽부터)
-            else:
-                candidates = []
-                if time.time() - self.last_detected_time >= 10:
-                    self.yolo = True
-                    print("Miss")
+            # 텍스트 준비
+            self.last_avg_text = f"PING: {avg_time*1000:.2f}ms | FPS: {avg_fps:.2f}"
             
-            msg_array = LinePointsArray() # 튜플로
-            for (cx, cy, lost) in candidates: 
-                msg = LinePoint() # (cx, cy, lost)
-                msg.cx = cx
-                msg.cy = cy
-                msg.lost = lost
-                msg_array.points.append(msg) # [(cx, cy, lost), (cx, cy, lost),,,,,,,,,]
-            self.line_publisher.publish(msg_array)
-            print(msg_array)
+            # 타이머 리셋
+            self.frame_count = 0
+            self.total_time = 0.0
+            self.last_report_time = now
 
-            cv_image[self.roi_y_start:self.roi_y_end, self.roi_x_start:self.roi_x_end] = bgr_image  # 전체화면
-            cv2.rectangle(cv_image, (self.roi_x_start - 1, self.roi_y_start - 1), (self.roi_x_end + 1, self.roi_y_end), (0, 255, 0), 1) # ROI 구역 표시
+        # 평균 처리 시간 텍스트 영상에 출력
+        cv2.putText(cv_image, self.last_avg_text, (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
             
-            #-------------------------------------------------------------------------------------------------- 프레임 처리 시간 측정
+        #---------------------------------------------------------------------------------------------------- 결과
 
-            elapsed = time.time() - start_time
-            self.frame_count += 1
-            self.total_time += elapsed
-
-            now = time.time()
-
-            # 1초에 한 번 평균 계산
-            if now - self.last_report_time >= 1.0:
-                avg_time = self.total_time / self.frame_count
-                avg_fps = self.frame_count / (now - self.last_report_time)
-                
-                # 텍스트 준비
-                self.last_avg_text = f"PING: {avg_time*1000:.2f}ms | FPS: {avg_fps:.2f}"
-                
-                # 타이머 리셋
-                self.frame_count = 0
-                self.total_time = 0.0
-                self.last_report_time = now
-
-            # 평균 처리 시간 텍스트 영상에 출력
-            if hasattr(self, "last_avg_text"):
-                cv2.putText(cv_image, self.last_avg_text, (10, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-                
-            #---------------------------------------------------------------------------------------------------- 결과
-
-            cv2.imshow("Mask", hsv_mask)    # 마스크 흑백
-            cv2.imshow("Publisher", cv_image)  # 결과
-            cv2.waitKey(1)
+        cv2.imshow("Mask", hsv_mask)    # 마스크 흑백
+        cv2.imshow("Publisher", cv_image)  # 결과
+        cv2.waitKey(1)
 
 def main():
     rp.init()
