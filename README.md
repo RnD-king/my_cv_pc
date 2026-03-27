@@ -14,7 +14,7 @@ cd ~/<워크스페이스>/src
 git clone https://github.com/RnD-king/vision_sample.git
 ls
 ```
-> 예상 결과) <사용자이름>:~/<워크스페이스>/<src>$ my_cv robot_msgs
+> 예상 결과) <사용자이름>:~/<워크스페이스>/src/vision_sample$ my_cv robot_msgs
 
 <워크스페이스>에 각자 워크스페이스 이름 넣고 위를 터미널에서 실행하면,
 vision_sample 폴더 안에 my_cv, robot_msgs 폴더 2개가 보일 것
