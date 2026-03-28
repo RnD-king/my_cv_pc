@@ -1,5 +1,5 @@
 # 2025 이토록 사소했던 영상처리
-
+=============
    
 ROS2 Python 패키지를 사용합니다.
 
@@ -53,24 +53,33 @@ git clone을 알아두면 이것저것 설치하기 편하니 알아두자.
 ## 1-1. src
 실제로 사용하는 실행 코드 파일을 모아 놓은 폴더.
 
-#### \_\_init\_\_.py
+#### **0) \_\_init\_\_.py**
 python 패키지의 src 폴더에 필수적으로 들어가야하는 파일.
 내용은 아무것도 없지만 패키지가 정상 작동하려면 일단 필요하다.
 실수로 없앴다면 그냥 빈 파일 만들고 이름을 \_\_init\_\_.py으로 붙이기만 해주자.
 
-### 기능용 파일 모음
+### \# 기능용 파일들 (알파벳 순서)
+
 대회에 사용할 코드는 아니지만, 색보정이나 다양한 파라미터 테스트 or 카메라 테스트 등을 할 수 있는 코드들.
 단순하게 구성되어 있으니 원하는 기능을 넣어 다른 코드를 만들 수도 있다.
 
-> 알파벳 순으로 정렬됨
-#### 1) color_mask_test.py
-내가 코드에서 설정한 hsv 색공간 범위의 색만 화면에 출력하는 코드.
 
-다른 터미널에 rqt를 실행시켜서 파라미터를 조절하면, 실시간으로 색범위를 조정할 수도 있다
-만약 주황색만 걸러내고 싶다면, rqt에서 파라미터를 조정해가며 내 카메라에서 주황색이 어떤 H,S,V값을 가지는지 확인할 수 있다. 
-추가로, 출력 화면을 마우스 클릭하면 그 부분의 HSV값을 터미널로 띄워주니 그 값에 맞춰도 좋다.
+#### 1) color_mask_test.py
+내가 설정한 hsv 색공간 범위의 색만 화면에 출력하는 코드.
+
+만약 주황색만 걸러내고 싶다면, 먼저 구글에 hsv 색상표를 검색해서 주황색에 맞는 H,S,V 값들을 알아내자.
+그 후에 코드에서 그 값을 직접 넣거나, rqt의 Parameter Reconfigure에서 파라미터 값을 조정해가며
+카메라 화면에서 어떤 부분이 주황색인지 확인할 수 있다.
+
+다만 코드에 값을 직접 넣는 방법은 재빌드가 필요하므로 귀찮으니 rqt를 애용하자.
+(새 터미널 > source~ > rqt입력 > 상단 메뉴의 Plugins-Configuration-Dynamic Reconfigure 클릭
+왼쪽에서 color_test_node를 클릭한 후, 파라미터 값을 바꿔보자
+간혹 Dynamic Reconfigure를 클릭해도 아무것도 뜨지 않을 때가 있는데, 그러면 뜰 때까지 다시 눌러주자)
+
+추가로, 출력 화면을 마우스 클릭하면 그 클릭한 부분의 HSV값을 터미널로 띄워주니 그 값에 맞춰도 좋다.
 
 깊이 범위도 다른 화면에서 확인할 수 있어, 그냥 파라미터 튜닝할 때 안성맞춤인 코드.
+대회장에서 쏠쏠하게 써먹었다.
 
 #### 2) depth_test.py
 간단하게 내가 설정한 깊이(거리)만 볼 수 있는 코드.
@@ -80,60 +89,70 @@ python 패키지의 src 폴더에 필수적으로 들어가야하는 파일.
 
 #### 3) image_saver_roi_keypress.py
 추후에 YOLO를 사용하게 되면, 우리는 YOLO 모델에 커스텀 데이터를 학습시켜줘야 한다.
-<br>
-데이터가 없는 YOLO는 갓 태어난 새끼 오리와 같기에, 우리는 YOLO에게 사진을 보여주며
-<br>
-"자~ 이게 점선이야~" 하고 5000번은 알려줘야 한다.
-<br>
-이 때, 각각 다른 사진이 필요하다. (작년에는 10000장을 사용했다)
-<br>
-<br>
-또한 데이터의 통일성을 위해 리얼센스로 입력되는 화면 그대로를 사용해야 하므로 리얼센스로 찍은 사진이 필요하다.(카메라마다 색보정이 살짝식 다르기에)
-<br>
-따라서 이 코드는 스페이스바를 누르면 리얼센스로 출력되는 화면을 /<워크스페이스>/dataset/images/train 폴더 안에 저장해준다
-<br>
-<br>
-굳이 이 코드가 아니더라도 찍어놓은 동영상을 단위 시간마다 나누어서 자동으로 사진으로 만들어주는 프로그램도 있다.
+
+데이터가 없는 YOLO는 갓 태어난 새끼 오리와 같기에, 우리는 YOLO에게 사진을 일일이 보여주며
+"자~ 이게 점선이야~" 하고 수천 번은 알려줘야 한다.
+물론, 각각 다른 사진이 필요하다. (작년에는 2800장을 사용했다)
+
+또한 데이터의 통일성을 위해 카메라에 입력되는 화면 그대로를 사용해야 하므로 리얼센스로 찍은 사진이 필요하다.
+(폰으로 찍고 옮기기 X. 카메라마다 색보정이 살짝씩 다르기에)
+
+그래서 이 코드는 실행 시 스페이스바를 누르면 리얼센스로 출력되는 화면을
+~/<워크스페이스>/dataset/images/train 폴더 안에 저장해준다
+
+하지만 이 코드가 아니더라도 찍어놓은 동영상을 단위 시간마다 나누어서 자동으로 사진으로 만들어주는 편리한 프로그램도 있다.
 노가다가 귀찮다면 이 방법을 찾아보는 것도 방법.
-<br>
-\+ 어떤 방법으로든 사진 찍기가 모두 끝났다면, 라벨링 지옥이 기다리고 있으니 각오하자\,\,\,
+
+\+ 어떤 방법으로든 사진 찍기가 모두 끝났다면, literally 순수 노가다 라벨링 지옥이 기다리고 있으니 각오하자\,\,\,
 
 #### 4) realsense_test.py
-리얼센스를 노드로 실행해보는 아주 기본적인 코드.
+리얼센스를 ROS2 노드로 실행해보는 아주 기본적인 코드.
 열 번 봐도 부족함이 없으니 열심히 익혀보자.
 
-### 영상처리 코드들
-\* 개인적인 훑어보기 추천 순서 : line_publisher > line_subscriber > ball_detect > ball_recieve
+### \# 영상처리 코드들
+\* 추천하는 훑어보기 순서 : line_publisher > line_subscriber3 > line_subscriber > ball_detect > ball_recieve
 \* 나머지는 살짝 참고 정도만 하면 좋을 것 같다.
-<br> 듀얼 카메라를 사용한다면 ball_and_hoop의 카메라 나누는 구성을 참고해봐도 좋지만, 분명 이 코드보단 좋은 방법이 있을 거라 생각한다.
+\* 듀얼 카메라를 사용한다면 ball_and_hoop의 카메라 나누는 구성을 참고해봐도 좋지만, 분명! 이 코드보단 좋은 방법이 있을 거라 생각한다.
 
 #### 1) line_publisher.py
-1. 화면 보정을 하고, 2. 점선을 탐지하고, 3. 점선 좌표들을 리스트 모아 퍼블리시하는 코드.
+요약: 1. 화면 보정을 하고, 2. 점선을 탐지하고, 3. 점선 좌표들을 리스트 모아 퍼블리시하는 코드.
 
+```python
 class RectangleTracker:
-<br>
+```
+__\- 점선 추적기__
 카메라가 같은 점선을 가만히 보고 있더라도 중간에 1~2프레임씩 끊기는 일이 종종 있을 수 있다. (노이즈나 카메라 흔들림 등의 이유로)
-<br>
-혹은 같은 이유로, 점선이 없는 바닥을 보고 있더라도 1~2프레임씩 노이즈를 점선으로 인식하는 일이 발생할 수도 있다. 
+혹은, 점선이 없는 바닥을 보고 있더라도 1~2프레임씩 노이즈를 점선으로 인식하는 일이 같은 이유로 발생할 수도 있다. 
 이러한 간헐적 환각을 최대한 줄이기 위해 넣은 장치라 생각하면 된다.
-<br>
-이미 점선이라 인식하던 객체는 잠시 놓쳐도 몇 프레임 정도는 원래의 좌표를 기억해두고, 새로 점선이라 인식하게 된 객체는 몇 프레임 정도는 연속으로 인식해야만 점선으로 인정받게 된다.
+
+이미 점선이라 인식하던 객체는 잠시 놓쳐도 몇 프레임 정도는 원래의 좌표를 기억해두고,
+새로 점선이라 인식하게 된 객체는 몇 프레임 정도는 연속으로 인식해야만 점선으로 인정받게 된다.
 따라서 하나의 점선마다 5개의 정보를 갖고 있는데,
+
 1. ID -점선의 고유 번호. ID가 다르면 다른 점선임
 2. cx - 점선의 x 좌표
 3. cy - 점선의 y 좌표
 4. lost - 이 점선을 몇 프레임 연속으로 놓쳤는지. 임계값보다 커지는 순간 이 점선은 리스트에서 지워진다.
 5. found - 이 점선을 몇 프레임 연속으로 탐지했는지. 
-임계값보다 커지는 순간 그제야 진짜 점선으로 판단되어 점선 리스트에 등록된다.
+임계값보다 커지는 순간 그제야 진짜 점선으로 판단되어 reactangle(점선) 딕셔너리에 등록된다.
+
+> *rectangles = {
+    0: (cx, cy, lost, found),
+    1: (cx, cy, lost, found),
+    2: (cx, cy, lost, found)
+    ...
+}*
 
 위 정보들을 통해, 각 프레임마다 점선 정보를 저장, 다음 프레임으로 업데이트한다.
-<br>
-물론 로봇이 이동하면서 점선의 위치도 로봇 이동 방향과 반대로 카메라에서 이동하게 될텐데, 각 프레임마다 max_dist 이하만큼 움직인 점선만이 같은 점선이라 판단한다.
+>
+물론 로봇이 이동하면서 점선의 위치도 로봇 이동 방향과 반대로 카메라에서 이동하게 될텐데,
+이 때 각 프레임마다 max_dist 이하만큼 움직인 점선만이 같은 점선이라 판단한다.
 조금 rough한 방법이긴 하지만, 가볍고 단순하게 구현하기엔 이게 제일 나아서...
 고급과정) 칼만필터, 옵티컬 플로우
 
+```python
 class ImgSubscriber(Node):
-<br>
+```
 익숙한 클래스일 것이다. 이미지 콜백함수를 내장하고 있는 노드 객체.
 ```python
         self.subscription_color = self.create_subscription(  # 컬러
@@ -155,10 +174,9 @@ self.declare_parameter("max_lost", 10)
 ...
 self.declare_parameter("rect_area_min", 200)
 ```
-> 파라미터는 코드 실행 중간에도 사용자가 값을 변경할 수 있는 변수를 뜻한다. ROS2에선 보통 rqt 사용.
 
 노드를 실행하는 중간에도 rqt를 통해 색 보정치나 점선 조건 등을 변경할 수 있게 만드는 파라미터를 선언한다.
-("이름", 값)
+self.declare_parameter("이름", 값)
 ```python
  # 파라미터 적용
         max_lost = self.get_parameter("max_lost").value
@@ -174,19 +192,22 @@ self.add_on_set_parameters_callback(self.parameter_callback)
 def parameter_callback(self, params):
 ```
 파라미터가 변경될 때마다 실행되는 콜백함수.
-설정한 파라미터 값을 리턴한다.
-추가로, 여기서 각 파라미터의 값들의 범위를 지정해줄 수 있다.
-유효한 값 범위 내에서만 적용되게 만들고 싶다면 이대로 쓰지만,
+설정한 파라미터 값을 리턴한다. (=변경된 파라미터 값을 적용할 함수)
+
+추가로, 여기서 각 파라미터의 값들의 범위도 지정해줄 수 있다.
+유효한 값 범위 내에서만 적용되게 만들고 싶다면 지금처럼 if, else문의 향연이 필요하지만,
 ```python
 for param in params:
     return SetParametersResult(successful=True)
 ```
-그냥 함수 안에 이것만 있어도 실행은 된다.
+귀찮다면 그냥 함수 안에 이것만 넣어놔도 실행은 된다.
 
 ```python
 def get_angle
 ```
+
 그냥 각도 계산 함수. 중요 x
+
 ```python
 def color_image_callback(self, msg):
 ```
@@ -209,13 +230,139 @@ if __name__ == '__main__':
 그냥 외우자.
 ROS2 노드를 돌릴 때 사용하는 방식이다.
 
-#### 2) line_subscriber
+#### 2) line_subscriber3
+요약: line_publisher에서 발행한 점 좌표에 관한 데이터를 터미널에 단순 출력하는 코드
 
-#### 3) ball_detect
+subscriber에 대한 아주아주 기본적인 코드다.
+자주 보고 눈에 익혀두자.
+```python
+import rclpy
+from rclpy.node import Node
+from robot_msgs.msg import LinePointsArray  # type: ignore
+```
+필요한 거 import 하기.
+뒤에 # type: ignore은 가끔 vscode가 커스텀 메세지를 인식 못 할 때가 있어서 빨간줄 긋지 말라고 해놓는 것.
+없어도 전혀 지장 없다.
+```python
+class LineSubscriberNode(Node):
+    def __init__(self):
+        super().__init__('line_subscriber3')
+        self.sub = self.create_subscription(
+            LinePointsArray,
+            'candidates',
+            self.line_callback,
+            10
+        )
+```
+LinePointArray라는 메세지 타입에서 'candidate'라는 토픽을 받을 거고,
+받으면 self.line_callback 콜백 함수를 실행하겠다는 뜻.
+당연히 publisher 쪽이랑 메세지 이름, 토픽 이름이 같아야한다.
+```python
+    def line_callback(self, msg: LinePointsArray):
+        if not msg.points:
+            return
+```
+퍼블리셔 쪽에서 데이터 없으면 보내지도 않긴 하지만, 혹여나 0 데이터가 들어올 수도 있으니,
+만약 토픽 내용이 없으면 출력하지 말고 바로 return
+```python
+        for idx, point in enumerate(msg.points):
+            self.get_logger().info(
+                f'[{idx}] cx={point.cx}, cy={point.cy}, lost={point.lost}'
+            )
+```
+데이터가 들어오면 순서대로 ID, cx, cy, lost를 출력하는 코드.
+딕셔너리라서 for idx, point in enumerate(msg.points):라고 쓴다.
+
+#### 3) line_subscriber
+
+방금 본 중심 좌표만 받아오기(출력하기)에서 이것저것 추가된 코드
+
+요약: 중심점 좌표 받아오기 > 좌표들의 분포를 통해 정해둔 3가지 기준에 따라 로봇의 행동 결정 > 결정된 행동을 퍼블리시 
+
+```python
+camera_width = 640 
+camera_height = 480 # 해상도
+
+roi_x_start = int(camera_width * 0 // 5)
+roi_x_end = int(camera_width * 5 // 5)
+roi_y_start = int(camera_height * 1 // 12)
+roi_y_end = int(camera_height * 11 // 12)
+# 전체 카메라 화면에서 연산 속도 효율을 위해, 실제로 보정, 추론 등은 ROI 내부에서만 진행하도록 화면 일부만 사용함.
+# 이 숫자들을 적용한다면, 화면의 세로 위아래 1/12씩은 이미지를 받아올 뿐, 전처리나 추론은 전혀 진행되지 않는다.
+
+zandi_x = int((roi_x_start + roi_x_end) / 2)
+zandi_y = int((roi_y_start + roi_y_end) / 2) + 140 # 카메라 좌표 상에서 로봇이 서있는 위치(원점 좌표처럼 사용)
+```
+코드 전체에서 사용할 상수 정의. 
+
+```python
+class LineListenerNode(Node): #################################################################### 판단 프레임 수 바꿀 때 yolo_cpp 도 고려해라~~~
+    def __init__(self):
+    ...
+    
+            self.out_text = ""
+            self.curve_text = ""
+            self.tilt_text = ""
+```
+자세한 내용은 주석 참고 바람.
+
+판단 기준을 대충 설명하자면,
+1. 현재 코스의 기울기가 얼마인가 (self.tilt_text)
+    중심점 좌표들을 1차식으로 근사한 후, 직선의 기울기를 구한다. 기울기가 클 수록 코스에 비뚤어진 채로 서있다고 판단
+2. 현재 코스가 직선구간인가 곡선구간인가 (self.curve_text)
+    근사한 직선과 가장 위쪽의 점선 중심점 사이의 거리를 구하고, 일정 거리 이상 떨어져있다면 현재 코스가 곡선 구간이라 판단.
+3. 점선들로부터 로봇이 얼마나 떨어져있는가 (self.out_text)
+    근사한 직선과 로봇의 중심점 사이의 거리를 구하고, 그 거리가 클 수록 코스로부터 로봇이 멀리 벗어나있다고 판단.
+
+이 3가지 판단 기준으로부터, 다음 어떤 동작을 실행했을 때 로봇이 점선 코스 위에 서있고,
+방향도 똑바로 볼 수 있을지를 계산해서 다음 동작을 결정한다. (status)
+ex) status = 1 이면 전진, status = 2 면 좌회전 하면서 전진... 이런 식 
+
+아무튼 위 작업을 
+153줄부터 359줄까지 함... (경우의 수가 많아서 그런 것뿐 절대 어려운 로직이 들어간 건 아니다. 여러분은 이런 거 하지마라...)
+ex) 기울기: straight / 직선or곡선: 왼쪽으로 곡선 구간 / out: 오른쪽으로 out  일 때 status는 몇이고..
+
+그 후에 15번(1초 동안 가만히 서서 바닥을 보는 꼴) 동안 보고 내린 동작(status) 결정 중,
+가장 많이 나온 동작(res)을 최종 선택하여 퍼블리시한다.
+*status와 res는 둘 다 같은 동작 명령을 의미하는 변수니 혼동 주의*
+*매 프레임의 결과로 선택한 동작이 status, 그 status를 15프레임 동안 보고 종합해서 최종 결정한 status 값이 res*
+
+그리고 그 동작(res)은 알고리즘 쪽의 코드에서 구독하여 사용한다.
+(참고: line, ball_and_hoop, hurdle 세 코드 모두 한 번의 판단 루프마다 하나의 res를 발행한다
+따라서 알고리즘은 한 루프마다 3개의 res를 받게 되는데, 각 코드별 가중치에 따라 하나의 res를 최종 결정한다
+예) 점선도 탐지했고, 농구공도 탐지했다면, 농구공으로 걸어가는 것이 우선이기 때문에)
+
+```python
+    def color_image_callback(self, msg): 
+```
+디버깅용 이미지 콜백함수.
+어차피 이미지 구독은 퍼블리셔 쪽에서 하고 화면 출력도 하기 때문에 구독자에선 굳이 화면을 띄울 필요는 없지만, 
+위의 판단 기준과 점선을 그리는 기준이 옳게 작동 중인지 확인하기 위해 넣은 콜백함수.
+점선과 근사 직선을 그리고, 판단 결과를 글씨로 화면에 띄운다.
+
+#### 4) ball_detect
 line 코드는 이름을 publisher, subscriber로 했으면서
-왜 ball은 detect, recieve로 이름을 지었을까, 역할은 다르지 않다.
+왜 ball은 detect, recieve로 이름을 지었을까?
+나도 모르겠다.
+역할은 다르지 않다.
 
-#### 4) ball_recieve
+```python
+class BasketballDetectorNode(Node):
+    def __init__(self):
+        super().__init__('basketball_detector')
+        ...
+    def parameter_callback(self, params):
+        ...
+        return SetParametersResult(successful=True)
+    
+    def click(self, event, x, y, _, __): 
+        ...
+    def image_callback(self, color_msg: Image, depth_msg: Image):
+        ...
+```
+이 구조는 이제 익숙해졌을 것이다.
+
+#### 5) ball_recieve
 
 
 ## 1-2. launch
