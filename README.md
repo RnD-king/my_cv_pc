@@ -21,6 +21,7 @@ git clone https://github.com/RnD-king/vision_sample.git
 ls
 ```
 > 예상 결과) <사용자이름>:~/<워크스페이스>/src/vision_sample$ my_cv robot_msgs
+<br>
 ####참고)
 ```
 git clone <레포 URL>
@@ -28,6 +29,7 @@ git clone <레포 URL>
 터미널에 입력하면 깃헙 레포를 현재 위치에 설치할수 있다.
 git이 없다고 터미널에 오류가 뜨면 오류 메세지를 따라 git을 설치하면 된다.
 git clone을 알아두면 이것저것 설치하기 편하다
+<br>
 <br>
 <워크스페이스>에 각자 워크스페이스 이름 넣고 위를 터미널에서 실행하면,
 vision_sample 폴더 안에 my_cv, robot_msgs 폴더 2개가 보일 것
