@@ -1,69 +1,56 @@
 # 2025 이토록 사소했던 영상처리
-
+=============
+   
 ROS2 Python 패키지를 사용합니다.
-<br>
+
 작년에 사용한 대회 코드들과(일부 수정됨) 카메라 테스트에 쓸만한 코드들입니다.
 - GPT향 97.3% 함유
 - GEMINI향 0.2% 첨가
 
 
-
+***
 # 구조 설명
-두 개의 패키지로 이루어져 있습니다.(my_cv, robots_msgs)
-<br>
+두 개의 패키지로 이루어져 있습니다.(my_cv, robots_msgs)   
+
 패키지는 워크스페이스 안의 src 폴더에 들어가야 하므로,
-<br>
-패키지 설치법
+
+__패키지 설치법__
+터미널에서,
 ```sh
 cd ~/<워크스페이스>/src
 git clone https://github.com/RnD-king/vision_sample.git
 ls
 ```
 > 예상 결과) <사용자이름>:~/<워크스페이스>/src/vision_sample$ my_cv robot_msgs
-<br>
-> 참고)
-```
-git clone <레포 URL>
-```
-> 터미널에 입력하면 깃헙 레포를 현재 위치에 설치할수 있다.
-git이 없다고 터미널에 오류가 뜨면 오류 메세지를 따라 git을 설치하면 된다.
-git clone을 알아두면 이것저것 설치하기 편하다
-<br>
-<br>
-<워크스페이스>에 각자 워크스페이스 이름 넣고 위를 터미널에서 실행하면,
-vision_sample 폴더 안에 my_cv, robot_msgs 폴더 2개가 보일 것
 
+<워크스페이스>에 각자 워크스페이스 이름 넣고 위를 터미널에서 실행하면,   vision_sample 폴더 안에 my_cv, robot_msgs 폴더 2개가 보일 것이다.
 그 두 폴더를 vision_sample 폴더에서 빼서 상위 폴더인 src에 넣어주자. 그리고 vision_sample 폴더는 삭제.
 완료했다면 <워크스페이스>/src 안에 정상적으로 패키지 2개가 설치된 것
 
-# 패키지 설멍
+참고)
+
+```
+git clone <레포 URL>
+```
+터미널에 입력하면 깃헙 레포를 현재 위치에 설치할수 있다.
+
+git이 없다고 터미널에 오류가 뜨면 오류 메세지를 따라 git을 설치하면 된다.
+git clone을 알아두면 이것저것 설치하기 편하니 알아두자.
+
+
+***
+# 패키지 설명
 # 1. my_cv
 영상처리 관련 실행 파일들이 들어있는 python 패키지.
 
 > 패키지 이름을 내 맘대로 바꾸고 싶다면?
+
 1-1. /my_cv/package.xml 파일에 들어간다
-1-2. <name>my_cv</name> 에서 "my_cv"를 내가 원하는 이름의 패키지 이름으로 바꿔준다
-2-1. 같은 패키지 안의 setup.py 파일에 들어간다
+1-2. \<name\>my_cv\</name\> 에서 "my_cv"를 내가 원하는 이름의 패키지 이름으로 바꿔준다
+2-1. 같은 패키지 안의 setup\.py 파일에 들어간다
 2-2. package_name = 'my_cv' 에서 "my_cv"를 package.xml과 동일한 패키지 이름으로 바꿔준다
 
-## 1-1. launch
-여러 노드(주로 실행파일)들을 한 번에 실행하고, 설정까지 할 수 있는 파일을 모아놓은 폴더.
-예)
-```
-ros2 run pkg node1
-ros2 run pkg node2
-ros2 run pkg node3
-```
-위와 같은 3개의 노드(실행파일)를 실행하려면 터미널도 3개의 창을 열어야 하고, 일일이 작성하기가 너무 귀찮으니
-launch.py 파일 하나 만들어서 
-```
-ros2 launch my_package my_launch.py
-```
-처럼 사용하면, 쓰기도 쉽고 관리하기도 편해진다. (주의: launch 파일은 뒤에 .py까지 붙여야 함)
-
-우리가 항상 사용하는 ros2 launch realsense_camera rs_launch.py도 이와 같음.
-
-## 1-2. src
+## 1-1. src
 실제로 사용하는 실행 코드 파일을 모아 놓은 폴더.
 
 #### \_\_init\_\_.py
@@ -148,7 +135,7 @@ class RectangleTracker:
 class ImgSubscriber(Node):
 <br>
 익숙한 클래스일 것이다. 이미지 콜백함수를 내장하고 있는 노드 객체.
-```
+```python
         self.subscription_color = self.create_subscription(  # 컬러
             Image,
             '/camera/color/image_raw',  # RealSense에서 제공하는 컬러 이미지 토픽  >>  640x480 / 15fps
@@ -162,53 +149,52 @@ class ImgSubscriber(Node):
 각각 realsense 이미지를 구독하는 구독자, 점선의 중심점을 발행할 발행자를 만든다.
 점선의 중심점은 LinePointsArray라는 메세지 타입으로 퍼블리시. (robots_msgs 참고)
 
-```
+```python
 # 파라미터 선언
 self.declare_parameter("max_lost", 10)
 ...
 self.declare_parameter("rect_area_min", 200)
 ```
 > 파라미터는 코드 실행 중간에도 사용자가 값을 변경할 수 있는 변수를 뜻한다. ROS2에선 보통 rqt 사용.
-<br>
+
 노드를 실행하는 중간에도 rqt를 통해 색 보정치나 점선 조건 등을 변경할 수 있게 만드는 파라미터를 선언한다.
 ("이름", 값)
-```
+```python
  # 파라미터 적용
         max_lost = self.get_parameter("max_lost").value
         ...
         self.rect_area_min = self.get_parameter("rect_area_min").value
 ```
 선언한 파라미터를 이 코드에서 사용할 변수 이름으로 적용한다.
-```
+```python
 self.add_on_set_parameters_callback(self.parameter_callback)
 ```
 이후 파라미터가 rqt에서 변경될 때마다 parameter_callback 함수가 실행되어 노드에 전달해줄 예정.
-```
+```python
 def parameter_callback(self, params):
 ```
 파라미터가 변경될 때마다 실행되는 콜백함수.
 설정한 파라미터 값을 리턴한다.
 추가로, 여기서 각 파라미터의 값들의 범위를 지정해줄 수 있다.
 유효한 값 범위 내에서만 적용되게 만들고 싶다면 이대로 쓰지만,
-```
+```python
 for param in params:
     return SetParametersResult(successful=True)
 ```
 그냥 함수 안에 이것만 있어도 실행은 된다.
 
-```
+```python
 def get_angle
 ```
 그냥 각도 계산 함수. 중요 x
-```
+```python
 def color_image_callback(self, msg):
 ```
 이 코드의 본체.
 리얼센스에서 초당 15번 이미지 데이터를 보낼 때마다 실행되는 콜백함수.
 자세한 건 파일 내 주석 참고
 
-```
-
+```python
 def main():
     rp.init()
     node = ImgSubscriber()
@@ -230,6 +216,31 @@ line 코드는 이름을 publisher, subscriber로 했으면서
 왜 ball은 detect, recieve로 이름을 지었을까, 역할은 다르지 않다.
 
 #### 4) ball_recieve
+
+
+## 1-2. launch
+여러 노드(주로 실행파일)들을 한 번에 실행하고, 설정까지 할 수 있는 런치 파일들을 모아놓는 폴더.
+
+사실 여기에 만들어둔 launch 폴더는 realsense2_camera 패키지의 launch 폴더 예시라서 당장은 필요없다.
+그냥 설명만 붙여놓겠음.
+예)
+```
+ros2 run pkg node1
+ros2 run pkg node2
+ros2 run pkg node3
+```
+위와 같은 3개의 노드(실행파일)를 실행하려면 터미널도 3개의 창을 열어야 하고, 일일이 작성하기가 너무 귀찮으니
+launch.py 파일 하나 만들어서 
+```
+ros2 launch my_package my_launch.py
+```
+처럼 사용하면, 쓰기도 쉽고 관리하기도 편해진다. (주의: launch 파일은 뒤에 .py까지 붙여야 함)
+
+우리가 항상 사용하는 ros2 launch realsense_camera rs_launch.py도 이와 같음.
+
+***
+
+
 
 # robot_msgs
 ros2 토픽, 서비스 등에 사용되는 메세지들을 정의하는 패키지
