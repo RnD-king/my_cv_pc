@@ -9,14 +9,26 @@ ROS2 Python 패키지를 사용합니다.
 
 
 # 구조 설명
-현재 보이는 두 폴더(my_cv, robots_msgs)는 워크스페이스 내의 src 폴더 안에 들어갈 패키지임
+현재 보이는 두 폴더(my_cv, robots_msgs)는 패기지로,
+<br>
+워크스페이스 안의 src 폴더에 들어가야 한다.
+<br>
+<br>
+설치법
 ```sh
 cd ~/<워크스페이스>/src
 git clone https://github.com/RnD-king/vision_sample.git
 ls
 ```
 > 예상 결과) <사용자이름>:~/<워크스페이스>/src/vision_sample$ my_cv robot_msgs
-
+####참고)
+```
+git clone <레포 URL>
+```
+터미널에 입력하면 깃헙 레포를 현재 위치에 설치할수 있다.
+git이 없다고 터미널에 오류가 뜨면 오류 메세지를 따라 git을 설치하면 된다.
+git clone을 알아두면 이것저것 설치하기 편하다
+<br>
 <워크스페이스>에 각자 워크스페이스 이름 넣고 위를 터미널에서 실행하면,
 vision_sample 폴더 안에 my_cv, robot_msgs 폴더 2개가 보일 것
 
