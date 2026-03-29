@@ -49,10 +49,10 @@ git clone을 알아두면 이것저것 설치하기 편하니 알아두자.
 > 패키지 이름을 내 맘대로 바꾸고 싶다면?
 
 1-1. /my_cv/package.xml 파일에 들어간다  
-1-2. "my_cv"라는 글자 모두를 내가 원하는 이름의 패키지 이름으로 바꿔준다  
+1-2. "my_cv"를 모두 내가 원하는 이름의 패키지 이름으로 바꿔준다  
 
 2-1. 같은 패키지 안의 setup\.py 파일에 들어간다  
-2-2. "my_cv"라는 글자 모두를 package.xml과 동일한 패키지 이름으로 바꿔준다  
+2-2. "my_cv"를 모두 package.xml과 동일한 패키지 이름으로 바꿔준다  
 
 3-1. 같은 패키지 안의 setup.cfg 파일에 들어간다  
 3-2. 이하 동문  
@@ -145,10 +145,11 @@ __\= 점선 추적기__
 1. ID -점선의 고유 번호. ID가 다르면 다른 점선임  
 2. cx - 점선의 x 좌표  
 3. cy - 점선의 y 좌표  
-4. lost - 이 점선을 몇 프레임 연속으로 놓쳤는지. 임계값보다 커지는 순간 이 점선은 리스트에서 지워진다.  
+4. lost - 이 점선을 몇 프레임 연속으로 놓쳤는지.  
+   \- 임계값(max_lost) 초과 시: 이 점선은 tracking 중인 객체 리스트에서 제거됨
 5. found - 이 점선을 몇 프레임 연속으로 탐지했는지.   
-임계값보다 커지는 순간 그제야 진짜 점선으로 판단되어 reactangle(=점선) 딕셔너리에 등록된다.
-
+   \- 임계값(min_found) 이상 시: 불확실한 객체 → 확정된 점선(rectangle)으로 승격
+   \- 이후로는 모든 정보가 rectangles 딕셔너리에 저장됨
 > *rectangles = {
     0: (cx, cy, lost, found),
     1: (cx, cy, lost, found),
@@ -346,7 +347,11 @@ class LineListenerNode(Node): ##################################################
 2. self.armed
 
 둘 다 motion_end가 들어온 뒤에 실행되기 위해 필요한 일종의 차단기와 같은 역할을 하는 상태변수로, 기본값은 모두 False이다.  
-(둘 다 그냥 ON/OFF 스위치라 생각하면 편하다. 괜히 이름 때문에 헷갈릴 수도 있긴한데, 이름에 의미 X)
+상태 변수의 의미:
+- self.armed = False → 준비 안 됨 (motion_end 대기 중)
+- self.armed = True → 준비 완료 (motion_end 받음, 다음 line_callback에서 collecting=True로 전환)
+- self.collecting = False → 데이터 수집 안 함 (15프레임 루프 미실행)
+- self.collecting = True → 데이터 수집 중 (15프레임 동안 점선 분석)
 
 line_callback 함수를 이 두 상태변수 관점에서 크게 본다면, 
 ```python
@@ -402,6 +407,14 @@ self.get_logger().info(f'[Start] Window {self.window_id} | I got {self.collectin
         self.candidates = new_candidates
 ```
 부터 실행되어 본격적인 line_subscriber가 실행한다.
+
+클로드가 요약해준 타임라인:
+1. [초기] armed=False, collecting=False
+2. [motion_end 수신] armed=True (motion_callback 실행)
+3. [첫 line_callback] armed→False, collecting→True (준비 시작)
+4. [15프레임 루프] collecting=True 상태에서 계속 분석
+5. [결과 발행] 15프레임 후 collecting→False (루프 종료)
+6. [다시 대기] armed=False, collecting=False로 돌아가 다음 스텝 대기
 
 이로써 우리의 line_subscriber.py는 motion_end_detect 토픽과, candidates 토픽 모두가 들어와야만 실행되는 구조를 갖추었다.
 
