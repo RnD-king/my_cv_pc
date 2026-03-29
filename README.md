@@ -1,5 +1,4 @@
 # 2025 이토록 사소했던 영상처리
-=============
    
 ROS2 Python 패키지를 사용합니다.
 
@@ -24,8 +23,12 @@ ls
 ```
 > 예상 결과) <사용자이름>:~/<워크스페이스>/src/vision_sample$ my_cv robot_msgs
 
-<워크스페이스>에 각자 워크스페이스 이름 넣고 위를 터미널에서 실행하면,   vision_sample 폴더 안에 my_cv, robot_msgs 폴더 2개가 보일 것이다.
-그 두 폴더를 vision_sample 폴더에서 빼서 상위 폴더인 src에 넣어주자. 그리고 vision_sample 폴더는 삭제.
+<워크스페이스>에 각자 워크스페이스 이름 넣고 위를 터미널에서 실행하면,
+vision_sample 폴더 안에 my_cv, robot_msgs 폴더 2개가 보일 것이다.
+
+그 두 폴더를 vision_sample 폴더에서 빼서 상위 폴더인 src에 넣어주자. 
+그리고 vision_sample 폴더는 삭제.
+
 완료했다면 <워크스페이스>/src 안에 정상적으로 패키지 2개가 설치된 것
 
 참고)
