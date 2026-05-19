@@ -1,0 +1,10 @@
+path: /home/noh/dataset
+train: images/train
+val: images/val
+
+nc: 4
+names:
+  0: line
+  1: ball
+  2: backboard
+  3: hurdle
